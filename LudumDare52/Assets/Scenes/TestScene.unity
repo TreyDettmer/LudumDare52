@@ -9875,7 +9875,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: A Calico Games Creation
+  m_text: Created By Calico Spartan
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: f94046d088b8b6841bb60d8fe5cace2f, type: 2}
   m_sharedMaterial: {fileID: 600378929519150909, guid: f94046d088b8b6841bb60d8fe5cace2f, type: 2}
@@ -16457,7 +16457,7 @@ MonoBehaviour:
   dayLengthInSeconds: 30
   oxygenUsageDelay: 0.7
   foodUsageDelay: 0.6
-  foodOutputDelay: 0.66
+  foodOutputDelay: 0.68
   riverLoseWaterDelay: 1
 --- !u!4 &1989291198
 Transform:
@@ -16487,7 +16487,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   treeDecayDelay: 1.2
-  treeOxygenOutputDelay: 0.75
+  treeOxygenOutputDelay: 0.77
   treeBaseOxygenOutput: 0.02
 --- !u!114 &1989291200
 MonoBehaviour:
@@ -17749,10 +17749,6 @@ PrefabInstance:
     - target: {fileID: 4182360070995525236, guid: 3a4d13aec1e51004ab968c4141e67fc5, type: 3}
       propertyPath: m_Name
       value: RainCatcher
-      objectReference: {fileID: 0}
-    - target: {fileID: 6423895163348055397, guid: 3a4d13aec1e51004ab968c4141e67fc5, type: 3}
-      propertyPath: movementSpeed
-      value: 11
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3a4d13aec1e51004ab968c4141e67fc5, type: 3}
