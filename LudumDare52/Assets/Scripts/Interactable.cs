@@ -5,6 +5,7 @@ public interface Interactable
 {
 
     public Vector3 RainPosition { get; set; }
+    public float Health { get; set; }
     public void ReceiveWater(float waterAmount, float waterAcidity);
 
     public void ToggleOutline(bool enable);

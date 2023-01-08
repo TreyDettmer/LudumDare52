@@ -17,10 +17,15 @@ public class RainCatcher : MonoBehaviour
 
     public delegate void OnCaughtRainDelegate(int caughtGoodRainAmount, int caughtAcidRainAmount);
     public event OnCaughtRainDelegate OnCaughtRain;
+    public delegate void OnMultiplierChangedDelegate(int newMultiplierValue);
+    public event OnMultiplierChangedDelegate OnMultiplierChanged;
 
     private PlayerInput playerInput;
     private PlayerInputActions playerInputActions;
 
+    private int currentMultiplier = 1;
+    private int goodRainCaughtInARow = 0;
+    [SerializeField] int streakNeededForMultiplierIncrease = 10;
 
     private void Awake()
     {
@@ -73,6 +78,9 @@ public class RainCatcher : MonoBehaviour
     {
         caughtAcidRainAmount = 0;
         caughtGoodRainAmount = 0;
+        currentMultiplier = 1;
+        goodRainCaughtInARow = 0;
+        OnMultiplierChanged?.Invoke(currentMultiplier);
     }
 
     // Update is called once per frame
@@ -120,19 +128,48 @@ public class RainCatcher : MonoBehaviour
             if (other.gameObject.GetComponent<RainDroplet>().IsAcidRain)
             {
                 caughtAcidRainAmount += 1;
-                AudioManager.Instance.Play("RainDroplet");
                 
+                if (goodRainCaughtInARow > streakNeededForMultiplierIncrease)
+                {
+                    
+                    CancelMultipler();
+                }
+                else
+                {
+                    AudioManager.Instance.Play("RainDroplet");
+                }
+                goodRainCaughtInARow = 0;
+
             }
             else
             {
-                caughtGoodRainAmount += 1;
+
+                if (goodRainCaughtInARow % streakNeededForMultiplierIncrease == 0 && goodRainCaughtInARow != 0)
+                {
+                    IncreaseMultiplier();
+                }
+                caughtGoodRainAmount += currentMultiplier;
                 AudioManager.Instance.Play("RainDroplet");
+                goodRainCaughtInARow++;
             }
             OnCaughtRain?.Invoke(caughtGoodRainAmount, caughtAcidRainAmount);
         }
-        Debug.Log("Caught rain");
 
         Destroy(other.gameObject);
+    }
+
+    public void IncreaseMultiplier()
+    {
+        AudioManager.Instance.Play("ComboUp");
+        currentMultiplier++;
+        OnMultiplierChanged?.Invoke(currentMultiplier);
+    }
+
+    public void CancelMultipler()
+    {
+        AudioManager.Instance.Play("ComboDown");
+        currentMultiplier = 1;
+        OnMultiplierChanged?.Invoke(currentMultiplier);
     }
 
     public int GetCaughtGoodRainAmount()

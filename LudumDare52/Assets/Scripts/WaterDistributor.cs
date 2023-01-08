@@ -73,7 +73,7 @@ public class WaterDistributor : MonoBehaviour
     void Update()
     {
         if (!playerInputActions.WaterDistributor.enabled) return;
-
+        if (GameplayManager.Instance.CurrentGameplayState != GameplayManager.GameplayState.DISTRIBUTING_WATER) return;
 
         cursorPosition = playerInputActions.WaterDistributor.Position.ReadValue<Vector2>();
         Ray ray = Camera.main.ScreenPointToRay(cursorPosition);
@@ -106,6 +106,7 @@ public class WaterDistributor : MonoBehaviour
     void OnInteract()
     {
         if (!playerInputActions.WaterDistributor.enabled) return;
+        if (GameplayManager.Instance.CurrentGameplayState != GameplayManager.GameplayState.DISTRIBUTING_WATER) return;
         Ray ray = Camera.main.ScreenPointToRay(cursorPosition);
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit, 1000f, interactablesLayerMask))

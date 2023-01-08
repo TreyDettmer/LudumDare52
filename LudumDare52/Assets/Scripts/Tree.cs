@@ -49,6 +49,11 @@ public class Tree : MonoBehaviour
         
     }
 
+    public float GetHealth()
+    {
+        return health;
+    }
+
     private void Die()
     {
         leavesRenderer.enabled = false;

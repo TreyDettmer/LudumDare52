@@ -61,7 +61,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a9222b0cb2fff746afb12926d366a11, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fallSpeed: 5
+  fallSpeed: 5.5
   goodImpactPrefab: {fileID: 5678426194138322304, guid: b581e8a7898ee004c8e69dfc1ad97c99, type: 3}
   acidImpactPrefab: {fileID: 5678426194138322304, guid: 4fde78c2d0b84c441ba64573ffdefc5f, type: 3}
   IsAcidRain: 0

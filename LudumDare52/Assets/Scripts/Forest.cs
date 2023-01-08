@@ -7,7 +7,7 @@ public class Forest : MonoBehaviour, Interactable
     private List<Tree> trees = new List<Tree>();
     private Outline outline;
     [SerializeField] Transform rainPositionTransform;
-
+    public float Health { get; set; }
     public Vector3 RainPosition { get; set; }
     
     // Start is called before the first frame update
@@ -18,16 +18,24 @@ public class Forest : MonoBehaviour, Interactable
         ToggleOutline(false);
         Tree[] _trees = GetComponentsInChildren<Tree>();
         trees = new List<Tree>(_trees);
+        float totalHealth = 0f;
         foreach (Tree tree in trees)
         {
             tree.OnTreeDestroyed += HandleTreeDestroyed;
+            totalHealth += tree.GetHealth();
         }
+        Health = totalHealth / trees.Count;
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        float totalHealth = 0f;
+        foreach (Tree tree in trees)
+        {
+            totalHealth += tree.GetHealth();
+        }
+        Health = totalHealth / trees.Count;
     }
 
     public void ReceiveWater(float waterAmount, float waterAcidity)
@@ -57,7 +65,7 @@ public class Forest : MonoBehaviour, Interactable
 
     void HandleTreeDestroyed(Tree tree)
     {
-        trees.Remove(tree);
+        //trees.Remove(tree);
     }
 
     public void ToggleOutline(bool enable)

@@ -14,6 +14,7 @@ public class WaterDistributorGui : MonoBehaviour
     [SerializeField] float showAnimationTime = .2f;
     [SerializeField] float hideAnimationTime = .2f;
     [SerializeField] TextMeshProUGUI prompt;
+    [SerializeField] TextMeshProUGUI healthText;
     [SerializeField] GameObject distributePanel;
 
     [SerializeField] TextMeshProUGUI distributePanelTitle;
@@ -73,6 +74,7 @@ public class WaterDistributorGui : MonoBehaviour
     {
         this.interactedObject = interactedObject;
         distributePanelTitle.text = this.interactedObject.name;
+        healthText.text = "Current Health: " + ((int)this.interactedObject.GetComponent<Interactable>().Health).ToString();
         if (!distributePanel.activeSelf)
         {
             ShowDistributePanel();

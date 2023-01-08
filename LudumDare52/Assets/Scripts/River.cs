@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class River : MonoBehaviour, Interactable
 {
-
+    public float Health { get; set; }
     public int NumberOfFish { get; set; }
 
     public float WaterAmount { get; set; }
@@ -31,6 +31,7 @@ public class River : MonoBehaviour, Interactable
         material = GetComponent<MeshRenderer>().material;
         WaterAmount = 100f;
         WaterAcidity = 0f;
+        Health = WaterAmount;
     }
 
     private void OnGameOver(object sender, System.EventArgs e)
@@ -72,8 +73,9 @@ public class River : MonoBehaviour, Interactable
         {
             WaterAcidity = ((WaterAmount) * (WaterAcidity) + (addedWater) * (acidityOfAddedWater)) / (WaterAmount + addedWater);
         }
-        WaterAmount += addedWater;
+        WaterAmount += addedWater;        
         WaterAmount = Mathf.Clamp(WaterAmount, 0f, 100f);
+        Health = WaterAmount;
         material.SetColor("_BaseColor", waterColorGradient.Evaluate(WaterAcidity));
         if (isSelected)
         {

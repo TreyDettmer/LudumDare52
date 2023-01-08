@@ -37,6 +37,7 @@ public class GameplayManager : MonoBehaviour
     [SerializeField] private Transform waterDistributorCameraTransform;
     [SerializeField] private Transform rainCatcherCameraTransform;
     [SerializeField] ParticleSystem rainParticleSystem;
+    [SerializeField] float introOrbitSpeed;
 
     [SerializeField] private float totalOxygen;
     [SerializeField] private float totalFood;
@@ -59,6 +60,8 @@ public class GameplayManager : MonoBehaviour
     private int timeUntilNextRain;
     private bool isGameRunning = true;
     public int CurrentDay { get; private set; }
+    private bool isPregame = true;
+    private bool isPostgame = false;
 
     private void Awake()
     {
@@ -141,18 +144,61 @@ public class GameplayManager : MonoBehaviour
     public void DayComplete()
     {
         CurrentDay++;
+        if (CurrentDay == 11)
+        {
+            StartCoroutine(GameWasWon());
+            return;
+        }
         OnDayComplete?.Invoke(CurrentDay);
         SwitchToCatchingRain();
     }
 
+    IEnumerator GameWasWon()
+    {
+        RainCatcherGUI.Instance.ToggleVisibility(false);
+        WaterDistributorGui.Instance.ToggleVisibility(false);
+        isGameRunning = false;
+        CurrentGameplayState = GameplayState.GAME_OVER;
+        camera.transform.position = waterDistributorCameraTransform.position;
+        WinGameGui.Instance.ToggleVisibility(true);
+        isPostgame = true;
+        while (isPostgame)
+        {
+            // Orbit camera
+            camera.transform.RotateAround(new Vector3(0f, -10f, 0f), Vector3.up, introOrbitSpeed);
+            Vector3 forward = -(camera.transform.position - new Vector3(0f, -14f, 0f)).normalized;
+            camera.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
+            yield return null;
+        }
+    }
+
     IEnumerator PregameIntro()
     {
-        yield return new WaitForSeconds(.5f);
+        RainCatcherGUI.Instance.gameObject.SetActive(false);
+        WaterDistributorGui.Instance.gameObject.SetActive(false);
+        isPregame = true;
+        PregameGui.Instance.ToggleVisibility(true);
+        camera.transform.position = waterDistributorCameraTransform.position;
+        while (isPregame)
+        {
+            // Orbit camera
+            camera.transform.RotateAround(new Vector3(0f,-10f,0f), Vector3.up, introOrbitSpeed);
+            Vector3 forward = -(camera.transform.position - new Vector3(0f, -14f, 0f)).normalized;
+            camera.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
+            yield return null;
+        }      
+    }
+
+    public void PregameFinished()
+    {
+        isPregame = false;
+        PregameGui.Instance.ToggleVisibility(false);
         SwitchToCatchingRain();
     }
 
     public void SwitchToCatchingRain()
     {
+        RainCatcherGUI.Instance.gameObject.SetActive(true);
         ToggleFastForwardTime(false);
         CurrentGameplayState = GameplayState.CATCHING_RAIN;  
         WaterDistributorGui.Instance.ToggleVisibility(false);
@@ -175,6 +221,7 @@ public class GameplayManager : MonoBehaviour
 
     public void SwitchToWaterDistributor()
     {
+        WaterDistributorGui.Instance.gameObject.SetActive(true);
         CurrentGameplayState = GameplayState.DISTRIBUTING_WATER;
         ToggleActionMaps(false, true);
         RainCatcherGUI.Instance.ToggleVisibility(false);
@@ -224,6 +271,7 @@ public class GameplayManager : MonoBehaviour
     {
         rainParticleSystem.gameObject.transform.position = interactable.RainPosition;
         rainParticleSystem.Play();
+        AudioManager.Instance.Play("Rain");
         yield return new WaitForSeconds(3f);
         rainParticleSystem.Stop();
     }
@@ -247,6 +295,7 @@ public class GameplayManager : MonoBehaviour
     public void EndGame()
     {
         isGameRunning = false;
+        CurrentGameplayState = GameplayState.GAME_OVER;
         if (totalOxygen <= 0f)
         {
             GameOver?.Invoke("Your town ran out of oxygen.",CurrentDay - 1);
@@ -261,6 +310,7 @@ public class GameplayManager : MonoBehaviour
 
     public void RestartGame()
     {
+        Destroy(gameObject);
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 

@@ -42,8 +42,8 @@ public class RainManager : MonoBehaviour
         int currentDay = GameplayManager.Instance.CurrentDay;
         for (int i = 0; i < 4; i++)
         {
-            int minimumGoodRainDrops = (int) Mathf.Lerp(70f, 300f, (float)currentDay / maximumShowersDay);
-            forecastedShowers.Add(new Shower(UnityEngine.Random.Range(minimumGoodRainDrops, minimumGoodRainDrops+50), UnityEngine.Random.Range(minimumGoodRainDrops/2, (minimumGoodRainDrops+50)/ 2)));
+            int minimumGoodRainDrops = (int) Mathf.Lerp(90f, 320f, (float)currentDay / maximumShowersDay);
+            forecastedShowers.Add(new Shower(UnityEngine.Random.Range(minimumGoodRainDrops, minimumGoodRainDrops+50), UnityEngine.Random.Range((int)(minimumGoodRainDrops/1.3f), (int)((minimumGoodRainDrops+50)/ 1.3f))));
             currentDay++;
         }
     }
@@ -81,7 +81,7 @@ public class RainManager : MonoBehaviour
                 SpawnRainDroplet(true);
             }
             dropletArray.RemoveAt(randomIndex);
-            yield return new WaitForSeconds(UnityEngine.Random.Range(.05f,0.3f));
+            yield return new WaitForSeconds(UnityEngine.Random.Range(.05f,0.15f));
         }
     }
 
