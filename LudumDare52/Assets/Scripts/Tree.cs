@@ -6,21 +6,23 @@ public class Tree : MonoBehaviour
 {
 
     [SerializeField] private float health;
-    [SerializeField] private float baseOxygenOutput;
+    private float baseOxygenOutput;
     public float OxygenOutput { get; private set; }
 
     public delegate void OnTreeDestroyedDelegate(Tree tree);
     public event OnTreeDestroyedDelegate OnTreeDestroyed;
 
-    [SerializeField] Material[] materials;
-    MeshRenderer meshRenderer;
+    [SerializeField] MeshRenderer leavesRenderer;
+    [SerializeField] Material leavesMaterial;
+    [SerializeField] Gradient leavesColorGradient;
+
+    private bool isDead = false;
     
     // Start is called before the first frame update
     void Start()
     {
-        meshRenderer = GetComponent<MeshRenderer>();
-        if (materials.Length == 0) Debug.LogError("No materials assigned");
-        meshRenderer.material = materials[0];
+        leavesMaterial = Instantiate(leavesRenderer.material);
+        leavesRenderer.material = leavesMaterial;
     }
 
     // Update is called once per frame
@@ -31,41 +33,33 @@ public class Tree : MonoBehaviour
 
     public void UpdateHealth(float change)
     {
+        if (isDead) return;
         float previousHealth = health;
         health += change;
         health = Mathf.Clamp(health, 0f, 100f);
         if (health == 0)
         {
-            // TODO: spawn dead tree
-            Destroy(gameObject);
+            Die();
         }
         else
         {
-            if (health <= 75f)
-            {
-                if (health > 30f && previousHealth >= 75f)
-                {
-                    meshRenderer.material = materials[1];
-                }
-                else if (health > 0f && previousHealth >= 30f)
-                {
-                    meshRenderer.material = materials[2];
-                }
-            }
-            else if (previousHealth < 75f)
-            {
-                meshRenderer.material = materials[0];
-            }
+            leavesMaterial.color = leavesColorGradient.Evaluate(1f - health / 100f);
             OxygenOutput = baseOxygenOutput * (health / 100f);
         }
         
     }
 
-
-
-    private void OnDestroy()
+    private void Die()
     {
+        leavesRenderer.enabled = false;
+        OxygenOutput = 0f;
+        isDead = true;
         OnTreeDestroyed?.Invoke(this);
+    }
+
+    public void SetBaseOxygenOutput(float baseOxygenOutput)
+    {
+        this.baseOxygenOutput = baseOxygenOutput;
     }
 
 }

@@ -7,10 +7,13 @@ public class RainDroplet : MonoBehaviour
 {
 
     [SerializeField] private float fallSpeed;
+    [SerializeField] GameObject goodImpactPrefab;
+    [SerializeField] GameObject acidImpactPrefab;
     public bool IsAcidRain;
 
     public delegate void OnRainDropletDestroyedDelegate(RainDroplet rainDroplet);
     public event OnRainDropletDestroyedDelegate OnRainDropletDestroyed;
+    
 
     // Start is called before the first frame update
     void Start()
@@ -32,6 +35,23 @@ public class RainDroplet : MonoBehaviour
     private void OnCollisionEnter(Collision collision)
     {
 
+    }
+
+    public void SpawnImpactParticles()
+    {
+        if (!RainCatcher.Instance) return;
+        ParticleSystem impactParticleSystem;
+        if (IsAcidRain)
+        {
+            impactParticleSystem = Instantiate(acidImpactPrefab, transform.position, Quaternion.LookRotation((transform.position - RainCatcher.Instance.transform.position).normalized, Vector3.up)).GetComponent<ParticleSystem>();
+
+        }
+        else
+        {
+            impactParticleSystem = Instantiate(goodImpactPrefab, transform.position, Quaternion.LookRotation((transform.position - RainCatcher.Instance.transform.position).normalized, Vector3.up)).GetComponent<ParticleSystem>();
+
+        }
+        Destroy(impactParticleSystem, .5f);
     }
 
     public void OnDestroy()

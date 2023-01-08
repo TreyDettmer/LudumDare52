@@ -53,16 +53,20 @@ public class WaterDistributor : MonoBehaviour
         if (enable)
         {
             playerInputActions.WaterDistributor.Enable();
+            Debug.Log("Enabled water distributor");
         }
         else
         {
             playerInputActions.WaterDistributor.Disable();
+            Debug.Log("Disabled water distributor");
         }
     }
     // Start is called before the first frame update
     void Start()
     {
         playerInputActions.WaterDistributor.Interact.performed += _ => OnInteract();
+        AvailableWater = 0f;
+        AcidityOfAvailableWater = 0f;
     }
 
     // Update is called once per frame
@@ -76,8 +80,18 @@ public class WaterDistributor : MonoBehaviour
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit, 1000f, interactablesLayerMask))
         {
-            highlightedInteractable = hit.collider.gameObject.GetComponent<Interactable>();
-            highlightedInteractable.ToggleOutline(true);
+            if (highlightedInteractable != hit.collider.gameObject.GetComponent<Interactable>())
+            { 
+                if (highlightedInteractable != null)
+                {
+                    highlightedInteractable.ToggleOutline(false);
+                }
+                highlightedInteractable = hit.collider.gameObject.GetComponent<Interactable>();
+                if (highlightedInteractable != null)
+                {
+                    highlightedInteractable.ToggleOutline(true);
+                }
+            }
         }
         else if (highlightedInteractable != null)
         {
@@ -85,11 +99,13 @@ public class WaterDistributor : MonoBehaviour
             highlightedInteractable = null;
         }
 
+
     }
 
 
     void OnInteract()
     {
+        if (!playerInputActions.WaterDistributor.enabled) return;
         Ray ray = Camera.main.ScreenPointToRay(cursorPosition);
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit, 1000f, interactablesLayerMask))
@@ -105,6 +121,16 @@ public class WaterDistributor : MonoBehaviour
     {
         AvailableWater = availableWater;
         AcidityOfAvailableWater = acidityOfAvailableWater;
+    }
+
+    public void AddToAvailableWaterAndAcidity(float additionalWater, float acidityOfAdditionalWater)
+    {
+
+        if (additionalWater > 0f)
+        {
+            AcidityOfAvailableWater = ((AvailableWater) * (AcidityOfAvailableWater) + (additionalWater) * (acidityOfAdditionalWater)) / (AvailableWater + additionalWater);
+        }
+        AvailableWater += additionalWater;
     }
 
     public bool AttemptToDistributeWater(float waterAmount)

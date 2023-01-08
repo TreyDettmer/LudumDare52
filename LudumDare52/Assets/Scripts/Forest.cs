@@ -6,11 +6,15 @@ public class Forest : MonoBehaviour, Interactable
 {
     private List<Tree> trees = new List<Tree>();
     private Outline outline;
+    [SerializeField] Transform rainPositionTransform;
 
+    public Vector3 RainPosition { get; set; }
+    
     // Start is called before the first frame update
     void Start()
     {
         outline = GetComponent<Outline>();
+        RainPosition = rainPositionTransform.position;
         ToggleOutline(false);
         Tree[] _trees = GetComponentsInChildren<Tree>();
         trees = new List<Tree>(_trees);
@@ -26,17 +30,23 @@ public class Forest : MonoBehaviour, Interactable
         
     }
 
-    public void RecieveWater(float waterAmount, float waterAcidity)
+    public void ReceiveWater(float waterAmount, float waterAcidity)
     {
         foreach (Tree tree in trees)
         {
             if (waterAcidity > .5f)
             {
-                tree.UpdateHealth(-waterAmount);
+                float acidityFactor = (waterAcidity - .5f) / .5f;
+                tree.UpdateHealth(-acidityFactor * waterAmount);
             }
             else if (waterAcidity < .5f)
             {
-                tree.UpdateHealth(waterAmount);
+                // .5 = 0
+                // .25 = .5f
+                // 0 = 1f
+
+                float acidityFactor = 1 - (2f * waterAcidity);
+                tree.UpdateHealth(acidityFactor * waterAmount);
             }
             else
             {
@@ -54,11 +64,13 @@ public class Forest : MonoBehaviour, Interactable
     {
         if (enable)
         {
-            outline.OutlineMode = Outline.Mode.OutlineAll;
+            LeanTween.moveLocalY(gameObject, 1f, .3f);
         }
         else
         {
-            outline.OutlineMode = Outline.Mode.OutlineHidden;
+            LeanTween.moveLocalY(gameObject, -1f, .3f);
         }
+        
+
     }
 }

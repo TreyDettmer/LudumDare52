@@ -43,10 +43,12 @@ public class RainCatcher : MonoBehaviour
         if (enable)
         {
             playerInputActions.RainCatcher.Enable();
+            Debug.Log("Enabled rain catcher");
         }
         else
         {
             playerInputActions.RainCatcher.Disable();
+            Debug.Log("Disabled rain catcher");
         }
     }
 
@@ -83,13 +85,13 @@ public class RainCatcher : MonoBehaviour
     void Move()
     {
         transform.Translate(new Vector3(horizontalInput, 0f, 0f) * Time.deltaTime * movementSpeed);
-        if (transform.position.x > 6f)
+        if (transform.position.x > 8f)
         {
-            transform.position = new Vector3(6f, transform.position.y, transform.position.z);
+            transform.position = new Vector3(8f, transform.position.y, transform.position.z);
         }
-        else if (transform.position.x < -6f)
+        else if (transform.position.x < -8f)
         {
-            transform.position = new Vector3(-6f, transform.position.y, transform.position.z);
+            transform.position = new Vector3(-8f, transform.position.y, transform.position.z);
         }
     }
     
@@ -103,8 +105,10 @@ public class RainCatcher : MonoBehaviour
     private void OnCollisionEnter(Collision collision)
     {
 
-        Debug.Log("Missed rain");
-
+        if (collision.gameObject.GetComponent<RainDroplet>())
+        {
+            collision.gameObject.GetComponent<RainDroplet>().SpawnImpactParticles();
+        }
         Destroy(collision.gameObject);
         
     }
@@ -116,11 +120,13 @@ public class RainCatcher : MonoBehaviour
             if (other.gameObject.GetComponent<RainDroplet>().IsAcidRain)
             {
                 caughtAcidRainAmount += 1;
+                AudioManager.Instance.Play("RainDroplet");
                 
             }
             else
             {
                 caughtGoodRainAmount += 1;
+                AudioManager.Instance.Play("RainDroplet");
             }
             OnCaughtRain?.Invoke(caughtGoodRainAmount, caughtAcidRainAmount);
         }

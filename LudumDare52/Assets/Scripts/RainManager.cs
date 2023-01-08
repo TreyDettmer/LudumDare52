@@ -24,15 +24,28 @@ public class RainManager : MonoBehaviour
     [SerializeField] private GameObject goodRainDropletPrefab;
     [SerializeField] private GameObject acidRainDropletPrefab;
 
-    private Shower currentShower = new Shower(20, 12);
+    private List<Shower> forecastedShowers = new List<Shower>();
 
     private List<RainDroplet> rainDroplets = new List<RainDroplet>();
-    
+    private int maximumShowersDay = 10;
 
     // Start is called before the first frame update
     void Start()
     {
         GameplayManager.Instance.StartGame += HandleStartGame;
+        GameplayManager.Instance.StartRaining += HandleStartGame;
+        GenerateFutureShowerForecast();
+    }
+
+    void GenerateFutureShowerForecast()
+    {
+        int currentDay = GameplayManager.Instance.CurrentDay;
+        for (int i = 0; i < 4; i++)
+        {
+            int minimumGoodRainDrops = (int) Mathf.Lerp(70f, 300f, (float)currentDay / maximumShowersDay);
+            forecastedShowers.Add(new Shower(UnityEngine.Random.Range(minimumGoodRainDrops, minimumGoodRainDrops+50), UnityEngine.Random.Range(minimumGoodRainDrops/2, (minimumGoodRainDrops+50)/ 2)));
+            currentDay++;
+        }
     }
 
     // Update is called once per frame
@@ -43,41 +56,38 @@ public class RainManager : MonoBehaviour
 
     IEnumerator StartRaining()
     {
-        int goodRainDropletCount = currentShower.goodRainDropletCount;
-        int acidRainDropletCount = currentShower.acidRainDropletCount;
-        while (goodRainDropletCount > 0 || acidRainDropletCount > 0)
+        yield return new WaitForSeconds(1f);
+        int goodRainDropletCount = forecastedShowers[0].goodRainDropletCount;
+        int acidRainDropletCount = forecastedShowers[0].acidRainDropletCount;
+        List<int> dropletArray = new List<int>();
+        for (int i = 0; i < goodRainDropletCount; i++)
         {
-            if (goodRainDropletCount > 0 && acidRainDropletCount > 0)
-            {
-                bool shouldSpawnRainDroplet = UnityEngine.Random.value > .5f ? true : false;
-                if (shouldSpawnRainDroplet)
-                {
-                    SpawnRainDroplet();
-                    goodRainDropletCount--;
-                }
-                else
-                {
-                    SpawnRainDroplet(true);
-                    acidRainDropletCount--;
-                }
-            }
-            else if (goodRainDropletCount > 0)
+            dropletArray.Add(0);
+        }
+        for (int i = 0; i < acidRainDropletCount; i++)
+        {
+            dropletArray.Add(1);
+        }
+        while (dropletArray.Count > 0)
+        {
+            int randomIndex = UnityEngine.Random.Range(0, dropletArray.Count);
+            if (dropletArray[randomIndex] == 0)
             {
                 SpawnRainDroplet();
-                goodRainDropletCount--;
+                
             }
             else
             {
                 SpawnRainDroplet(true);
-                acidRainDropletCount--;
             }
-            yield return new WaitForSeconds(UnityEngine.Random.Range(.1f,0.8f));
+            dropletArray.RemoveAt(randomIndex);
+            yield return new WaitForSeconds(UnityEngine.Random.Range(.05f,0.3f));
         }
     }
 
     void SpawnRainDroplet(bool isAcidRain = false)
     {
-        float randomXPosition = UnityEngine.Random.Range(-6f, 6f);
+        float randomXPosition = UnityEngine.Random.Range(-7f, 7f);
         float randomYPosition = UnityEngine.Random.Range(skyheight, skyheight+3f);
         RainDroplet instantiatedDroplet = Instantiate(isAcidRain ? acidRainDropletPrefab :  goodRainDropletPrefab, new Vector3(randomXPosition, randomYPosition, 0f), Quaternion.identity, transform).GetComponent<RainDroplet>();
         rainDroplets.Add(instantiatedDroplet);
@@ -94,12 +104,19 @@ public class RainManager : MonoBehaviour
         StartCoroutine(StartRaining());
     }
 
+
     void HandleRainDropletDestroyed(RainDroplet rainDroplet)
     {
         rainDroplets.Remove(rainDroplet);
         if (rainDroplets.Count <= 0)
         {
             ShowerFinished?.Invoke(this, EventArgs.Empty);
+            forecastedShowers.RemoveAt(0);
+            if (forecastedShowers.Count < 3)
+            {
+                GenerateFutureShowerForecast();
+            }
+          
         }
     }
 }

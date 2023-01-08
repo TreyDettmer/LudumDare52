@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameplayManager : MonoBehaviour
 {
@@ -18,6 +19,7 @@ public class GameplayManager : MonoBehaviour
 
     public GameplayState CurrentGameplayState { get; private set;}
     public event EventHandler StartGame;
+    public event EventHandler StartRaining;
     public event EventHandler SwitchedToWaterDistributor;
 
     private RainManager rainManager;
@@ -27,21 +29,36 @@ public class GameplayManager : MonoBehaviour
     public delegate void OnResourceValueChangedDelegate(float newResourceValue);
     public event OnResourceValueChangedDelegate OnOxygenChanged;
     public event OnResourceValueChangedDelegate OnFoodChanged;
-    public event OnResourceValueChangedDelegate OnElectricityChanged;
+    public event OnResourceValueChangedDelegate OnTimeOfDayChanged;
+    public event OnResourceValueChangedDelegate OnDayComplete;
+    public delegate void OnGameOverDelegate(string reasonForGameOver, int daysLasted);
+    public event OnGameOverDelegate GameOver;
 
+    [SerializeField] private Transform waterDistributorCameraTransform;
+    [SerializeField] private Transform rainCatcherCameraTransform;
+    [SerializeField] ParticleSystem rainParticleSystem;
 
     [SerializeField] private float totalOxygen;
     [SerializeField] private float totalFood;
     [SerializeField] private float totalElectricity;
+    [SerializeField] private int dayLengthInSeconds;
 
 
-    [SerializeField] private float oxygenDecayDelay;
-    [SerializeField] private float foodDecayDelay;
-    [SerializeField] private float electricityDecayDelay;
+    [SerializeField] private float oxygenUsageDelay;
+    [SerializeField] private float foodUsageDelay;
+
+    [Header("River Management")]
+    [SerializeField] private float foodOutputDelay;
+    [SerializeField] private float riverLoseWaterDelay;
+
+
     private float lastTimeOfOxygenDecay;
     private float lastTimeOfFoodDecay;
     private float lastTimeOfElectricityDecay;
-
+    private float currentDayStartTime;
+    private int timeUntilNextRain;
+    private bool isGameRunning = true;
+    public int CurrentDay { get; private set; }
 
     private void Awake()
     {
@@ -65,6 +82,12 @@ public class GameplayManager : MonoBehaviour
         rainManager.ShowerFinished += HandleShowerFinished;
         WaterDistributor.Instance.OnInteraction += OnDistributorInteraction;
         WaterDistributor.Instance.OnDistributedWater += OnDistributedWater;
+        FindObjectOfType<River>().FoodOutputDelay = foodOutputDelay;
+        FindObjectOfType<River>().DecayDelay = riverLoseWaterDelay;
+        timeUntilNextRain = dayLengthInSeconds;
+        AudioManager.Instance.Play("Theme");
+        CurrentDay = 1;
+
         // TODO: Game Intro
         CurrentGameplayState = GameplayState.PREGAME;
         StartCoroutine(PregameIntro());
@@ -73,48 +96,79 @@ public class GameplayManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!isGameRunning) return;
+
         if (CurrentGameplayState == GameplayState.DISTRIBUTING_WATER)
         {
-            if (Time.time - lastTimeOfElectricityDecay >= electricityDecayDelay)
-            {
-                UpdateTotalElectricity(-1f);
-                lastTimeOfElectricityDecay = Time.time;
-            }
-            if (Time.time - lastTimeOfFoodDecay >= foodDecayDelay)
+
+            if (Time.time - lastTimeOfFoodDecay >= foodUsageDelay)
             {
                 UpdateTotalFood(-1f);
                 lastTimeOfFoodDecay = Time.time;
             }
-            if (Time.time - lastTimeOfOxygenDecay >= oxygenDecayDelay)
+            if (Time.time - lastTimeOfOxygenDecay >= oxygenUsageDelay)
             {
                 UpdateTotalOxygen(-1f);
                 lastTimeOfOxygenDecay = Time.time;
             }
+
+            UpdateTimeUntilNextRain();
+
+
+            if (totalOxygen <= 0f || totalFood <= 0f)
+            {
+                EndGame();
+            }
+
         }
+    }
+
+    void UpdateTimeUntilNextRain()
+    {
+        int currentTimeUntilNextRain = (int)(dayLengthInSeconds - (Time.time - currentDayStartTime));
+        if (currentTimeUntilNextRain != timeUntilNextRain)
+        {
+            OnTimeOfDayChanged?.Invoke(currentTimeUntilNextRain);
+        }
+        timeUntilNextRain = currentTimeUntilNextRain;
+        if (timeUntilNextRain <= 0)
+        {
+            DayComplete();
+            
+        }
+    }
+
+    public void DayComplete()
+    {
+        CurrentDay++;
+        OnDayComplete?.Invoke(CurrentDay);
+        SwitchToCatchingRain();
     }
 
     IEnumerator PregameIntro()
     {
         yield return new WaitForSeconds(.5f);
         SwitchToCatchingRain();
-        StartGame?.Invoke(this, EventArgs.Empty);
     }
 
     public void SwitchToCatchingRain()
     {
-        CurrentGameplayState = GameplayState.CATCHING_RAIN;
-        ToggleActionMaps(true, false);
+        ToggleFastForwardTime(false);
+        CurrentGameplayState = GameplayState.CATCHING_RAIN;  
         WaterDistributorGui.Instance.ToggleVisibility(false);
         RainCatcherGUI.Instance.ToggleVisibility(true);
-        LeanTween.move(camera.gameObject, new Vector3(0, 34f, -10), 1.5f).setEase(LeanTweenType.easeInOutCubic);
-        LeanTween.rotate(camera.gameObject, new Vector3(0f, 0f, 0f), 1f);
+        ToggleActionMaps(true, false);
+        LeanTween.move(camera.gameObject, rainCatcherCameraTransform.position, 1.5f).setEase(LeanTweenType.easeInOutCubic);
+        LeanTween.rotate(camera.gameObject, rainCatcherCameraTransform.rotation.eulerAngles, 1f);
+        
+        StartRaining?.Invoke(this, EventArgs.Empty);
     }
 
     public void HandleShowerFinished(object sender, EventArgs eventArgs)
     {
         int caughtGoodRainAmount = RainCatcher.Instance.GetCaughtGoodRainAmount();
         int caughtAcidRainAmount = RainCatcher.Instance.GetCaughtAcidRainAmount();
-        WaterDistributor.Instance.SetAvailableWaterAndAcidity(caughtGoodRainAmount + caughtAcidRainAmount, caughtAcidRainAmount / ((caughtGoodRainAmount + caughtAcidRainAmount) == 0 ? 1f : (caughtGoodRainAmount + caughtAcidRainAmount)));
+        WaterDistributor.Instance.AddToAvailableWaterAndAcidity(caughtGoodRainAmount + caughtAcidRainAmount, caughtAcidRainAmount / ((caughtGoodRainAmount + caughtAcidRainAmount) == 0 ? 1f : (caughtGoodRainAmount + caughtAcidRainAmount)));
         SwitchedToWaterDistributor?.Invoke(this, EventArgs.Empty);
         SwitchToWaterDistributor();
     }
@@ -124,37 +178,39 @@ public class GameplayManager : MonoBehaviour
         CurrentGameplayState = GameplayState.DISTRIBUTING_WATER;
         ToggleActionMaps(false, true);
         RainCatcherGUI.Instance.ToggleVisibility(false);
-        LeanTween.move(camera.gameObject, new Vector3(0, 12f, -10f),1.5f).setEase(LeanTweenType.easeInOutCubic);
-        LeanTween.rotate(camera.gameObject, new Vector3(20, 0f, 0f), 1f);
+        LeanTween.move(camera.gameObject, waterDistributorCameraTransform.position,1.5f).setEase(LeanTweenType.easeInOutCubic);
+        LeanTween.rotate(camera.gameObject, waterDistributorCameraTransform.rotation.eulerAngles, 1f);
+        timeUntilNextRain = dayLengthInSeconds;
+        currentDayStartTime = Time.time;
         WaterDistributorGui.Instance.ToggleVisibility(true);
     }
 
     public void UpdateTotalOxygen(float change)
     {
         totalOxygen += change;
+        totalOxygen = Mathf.Clamp(totalOxygen, 0f, 100f);
         OnOxygenChanged?.Invoke(totalOxygen);
     }
 
     public void UpdateTotalFood(float change)
     {
         totalFood += change;
+        totalFood = Mathf.Clamp(totalFood, 0f, 100f);
         OnFoodChanged?.Invoke(totalFood);
     }
 
-    public void UpdateTotalElectricity(float change)
-    {
-        totalElectricity += change;
-        OnElectricityChanged?.Invoke(totalElectricity);
-    }
 
     void OnDistributorInteraction(GameObject interactedObject)
     {
+        Debug.Log("Interacted so disabling distributor action map");
         ToggleActionMaps(false, false);
     }
 
-    void OnDistributedWater(GameObject interactedObject, float waterAmound)
+    void OnDistributedWater(GameObject interactedObject, float waterAmount)
     {  
         ToggleActionMaps(false, true);
+        interactedObject.GetComponent<Interactable>().ReceiveWater(waterAmount,WaterDistributor.Instance.AcidityOfAvailableWater);
+        StartCoroutine(RainParticlesRoutine(interactedObject.GetComponent<Interactable>()));
     }
 
     public void ToggleActionMaps(bool rainCatcherToggle, bool waterDistributorToggle)
@@ -164,5 +220,53 @@ public class GameplayManager : MonoBehaviour
     }
 
 
+    IEnumerator RainParticlesRoutine(Interactable interactable)
+    {
+        rainParticleSystem.gameObject.transform.position = interactable.RainPosition;
+        rainParticleSystem.Play();
+        yield return new WaitForSeconds(3f);
+        rainParticleSystem.Stop();
+    }
+
+    public void ToggleFastForwardTime(bool fastForward)
+    {
+        if (fastForward)
+        {
+            if (CurrentGameplayState == GameplayState.DISTRIBUTING_WATER)
+            {
+                Time.timeScale = 3.5f;
+            }
+        }
+        else
+        {
+            Time.timeScale = 1f;
+        }
+    }
+
+
+    public void EndGame()
+    {
+        isGameRunning = false;
+        if (totalOxygen <= 0f)
+        {
+            GameOver?.Invoke("Your town ran out of oxygen.",CurrentDay - 1);
+        }
+        else if (totalFood <= 0f)
+        {
+            GameOver?.Invoke("Your town ran out of food.",CurrentDay - 1);
+        }
+        
+        GameOverGui.Instance.ToggleVisibility(true);
+    }
+
+    public void RestartGame()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void QuitGame()
+    {
+        SceneManager.LoadScene(0);
+    }
 
 }
